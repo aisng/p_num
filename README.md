@@ -35,3 +35,8 @@ python main.py validate 12345678912 # Date 1823-45-67 is incorrect
 ```bash
 python main.py generate female 2030-02-15 12 # 63002150128
 ```
+
+```bash
+python main.py validate 63002150128 # National number 63002150128 is valid
+```
+
