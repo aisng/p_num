@@ -1,1 +1,1 @@
-# personal number validator and generator
+# National Lithuanian identification number generator and validator
