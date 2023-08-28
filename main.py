@@ -1,3 +1,7 @@
+import argparse
+import re
+
+
 def calculate_control_sum(personal_num, multiplier):
     control_sum = 0
     for num in personal_num[:10]:
@@ -52,19 +56,18 @@ def check_gender_and_century(gender_and_century_num=None, year=None, gender=None
     elif gender_and_century_num is None:
         year_century = year // 100 * 100
         keys = [x for x in century_gender_map.keys()]
-        for item in keys:
-            if item[0] == year_century and item[1] == gender:
+
+        for y, g in keys:
+            if y == year_century and g == gender:
                 # function calls itself to generate the gender/century digit
                 pre_result = century_gender_map.get((year_century, gender))
                 result = check_gender_and_century(pre_result, None, None)
                 break
             else:
-                if item[0] == year_century and item[1] != gender:
-                    result = (year, item[1])
-
-                elif item[0] != year_century and item[1] == gender:
-                    result = (item[0], gender)
-
+                if y == year_century and g != gender:
+                    result = (year, g)
+                elif y != year_century and g == gender:
+                    result = (year_century, gender)
                 else:
                     result = (year, gender)
     return result
@@ -82,13 +85,13 @@ def check_queue_num(num):
 
 
 def check_birth_month(given_month):
-    if given_month in range(1, 13):
+    if int(given_month) in range(1, 13):
         return True
     return False
 
 
 def check_birth_day(given_day):
-    if given_day in range(1, 32) or given_day in range(1, 30):
+    if int(given_day) in range(1, 32) or int(given_day) in range(1, 30):
         return True
     return False
 
@@ -97,6 +100,11 @@ def check_control_num(personal_num, given_control_num):
     if generate_control_num(personal_num) == given_control_num:
         return True
     return False
+
+
+def check_date_format(date_str):
+    date_regex = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    return bool(date_regex.match(date_str))
 
 
 # function to check if given personal num is valid
@@ -109,43 +117,62 @@ def personal_number_check(number):
     given_day = int(str(personal_num[5]) + str(personal_num[6]))
 
     if not check_length(personal_num):
-        return f"incorrect number length ({len(personal_num)})"
-    if not (check_gender_and_century(given_gender_and_century, None, None) == given_gender_and_century):
-        return f"incorrect first number ({personal_num[0]})"
+        return f"Incorrect number length ({len(personal_num)})"
+    if not (
+        check_gender_and_century(given_gender_and_century, None, None)
+        == given_gender_and_century
+    ):
+        return f"Incorrect first number ({personal_num[0]})"
     if not (check_birth_month(given_month) and check_birth_day(given_day)):
         match given_gender_and_century:
             case 1 | 2:
-                return f"date 18{given_year}-{given_month}-{given_day} is incorrect."
+                return f"Date 18{given_year}-{given_month}-{given_day} is incorrect"
             case 3 | 4:
-                return f"date 19{given_year}-{given_month}-{given_day} is incorrect."
+                return f"Date 19{given_year}-{given_month}-{given_day} is incorrect"
             case 5 | 6:
-                return f"date 20{given_year}-{given_month}-{given_day} is incorrect."
+                return f"Date 20{given_year}-{given_month}-{given_day} is incorrect"
     if not check_control_num(personal_num, given_control_num):
-        return f"incorrect control number (has to be {generate_control_num(personal_num)})"
-    return f"personal number {number} is valid"
+        return (
+            f"Incorrect control number (has to be {generate_control_num(personal_num)})"
+        )
+    return f"National number {number} is valid"
 
 
 # function to generate personal num from given gender, date and birth queue
 def generate_personal_number(gender, date, queue):
     gender_and_century_digit = str()
+
+    if not check_date_format(date):
+        return f"Incorrect date format ({date}), must be YYYY-MM-DD"
+
     year = int(date.split("-")[0])
     month = date.split("-")[1]
     day = date.split("-")[2]
 
+    if not check_birth_month(month):
+        return f"Incorrect month ({month}) in date {date}"
+    if not check_birth_day(day):
+        return f"Incorrect day ({day}) in date {date}"
+
     if check_gender_and_century(None, year, gender) in range(1, 7):
         gender_and_century_digit = str(check_gender_and_century(None, year, gender))
     else:
-        if check_gender_and_century(None, year, gender) != gender and check_gender_and_century(None, year, gender)[
-            0] not in range(1800, 2100):
-            return f"incorrect year '{year}' and gender '{gender}'"
+        if check_gender_and_century(None, year, gender)[
+            1
+        ] != gender and check_gender_and_century(None, year, gender)[0] not in range(
+            1800, 2100
+        ):
+            print("BAD")
+            return f"Incorrect year ({year}) and gender ({gender})"
         if check_gender_and_century(None, year, gender)[0] not in range(1800, 2100):
-            return f"incorrect year '{year}'"
+            return f"Incorrect year ({year})"
         if check_gender_and_century(None, year, gender)[1] != gender:
-            return f"incorrect gender '{gender}'"
+            return f"Incorrect gender ({gender})"
+
     year_digits = str(year)[2] + str(year)[3]
     queue_digits = str(queue)
     if not check_queue_num(queue_digits):
-        return f"incorrect queue number ({queue})"
+        return f"Incorrect queue number ({queue})"
     else:
         queue_digits = check_queue_num(queue_digits)
 
@@ -155,6 +182,41 @@ def generate_personal_number(gender, date, queue):
     return generated_personal_num
 
 
-# TODO: write a third funcion main() to connect generator with validator
-print(generate_personal_number("male", "2300-03-14", 1))
-print(personal_number_check(92915140092))
+def main():
+    parser = argparse.ArgumentParser(
+        description="Validate or generate Lithuanian National ID number."
+    )
+    subparsers = parser.add_subparsers(
+        title="commands", metavar="command", dest="command"
+    )
+
+    validate_parser = subparsers.add_parser(
+        "validate", help="Validate National ID number."
+    )
+    validate_parser.add_argument(
+        "number", type=int, help="National ID number to validate."
+    )
+
+    generate_parser = subparsers.add_parser(
+        "generate", help="Generate National ID number."
+    )
+    generate_parser.add_argument(
+        "gender",
+        type=str,
+        choices=["female", "male"],
+        metavar="female, male",
+        help="Gender",
+    )
+    generate_parser.add_argument("date", type=str, help="Date YYYY-MM-DD")
+    generate_parser.add_argument("queue", type=int, help="Queue number, integer")
+
+    args = parser.parse_args()
+
+    if args.command == "validate":
+        print(personal_number_check(args.number))
+    elif args.command == "generate":
+        print(generate_personal_number(args.gender, args.date, args.queue))
+
+
+if __name__ == "__main__":
+    main()
