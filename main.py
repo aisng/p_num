@@ -59,7 +59,7 @@ def check_gender_and_century(gender_and_century_num=None, year=None, gender=None
 
         for y, g in keys:
             if y == year_century and g == gender:
-                # function calls itself to generate the gender/century digit
+                # generate the gender/century digit
                 pre_result = century_gender_map.get((year_century, gender))
                 result = check_gender_and_century(pre_result, None, None)
                 break
@@ -162,7 +162,6 @@ def generate_personal_number(gender, date, queue):
         ] != gender and check_gender_and_century(None, year, gender)[0] not in range(
             1800, 2100
         ):
-            print("BAD")
             return f"Incorrect year ({year}) and gender ({gender})"
         if check_gender_and_century(None, year, gender)[0] not in range(1800, 2100):
             return f"Incorrect year ({year})"
